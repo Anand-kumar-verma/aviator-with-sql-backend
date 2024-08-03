@@ -40,7 +40,7 @@ const allRoutes = require("./routes/Routes");
 const { queryDb } = require("./helper/adminHelper");
 const { aviator_Start_function } = require("./controller/AviatorStart");
 
-app.use("", allRoutes);
+app.use("/api/v1", allRoutes);
 io.on("connection", (socket) => {});
 
 let x = true;

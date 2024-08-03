@@ -104,19 +104,24 @@ exports.aviator_Start_function = async (io) => {
           return;
         } else {
           const percent_60_bet_amount = bet_sum * (100 / 60);
-          const find_any_loss_amount_match_with_60_percent =
-            await LossTable.aggregate([
-              {
-                $sort: { lossAmount: -1 }, // Sort by lossAmount in descending order
-              },
-              {
-                $match: { lossAmount: { $lte: percent_60_bet_amount } }, // Match the criteria
-              },
-              {
-                $limit: 1, // Limit the result to the first document
-              },
-            ]); ///////// yha se vo lossAmount aa jayega jo ki 60% of bet_amount ko veriy kre..
-          if (
+          // const find_any_loss_amount_match_with_60_percent =
+            // await LossTable.aggregate([
+            //   {
+            //     $sort: { lossAmount: -1 }, // Sort by lossAmount in descending order
+            //   },
+            //   {
+            //     $match: { lossAmount: { $lte: percent_60_bet_amount } }, // Match the criteria
+            //   },
+            //   {
+            //     $limit: 1, // Limit the result to the first document
+            //   },
+            // ]); ///////// yha se vo lossAmount aa jayega jo ki 60% of bet_amount ko veriy kre..
+            const query_for_find_record_less_than_equal_to_60_percent = `SELECT * FROM aviator_loss WHERE lossAmount <= ${percent_60_bet_amount} ORDER BY lossAmount DESC LIMIT 1;`;
+            const find_any_loss_amount_match_with_60_percent = await queryDb(
+              query_for_find_record_less_than_equal_to_60_percent,
+              []
+            );
+            if (
             find_any_loss_amount_match_with_60_percent?.[0] &&
             find_any_loss_amount_match_with_60_percent?.[0]?.lossAmount >
               bet_sum
@@ -156,11 +161,13 @@ exports.aviator_Start_function = async (io) => {
               return;
             } else {
               if (bet_sum > 0 && counterboolean && cash_out_sum > 0) {
-                await SetCounter.findOneAndUpdate(
-                  {},
-                  { $inc: { counter: 1 } },
-                  { new: true, upsert: true }
-                );
+                const query_for_incr_counter = "UPDATE aviator_loss_counter SET counter = counter + 1 WHERE id = 1;"
+                await queryDb(query_for_incr_counter,[])
+                // await SetCounter.findOneAndUpdate(
+                //   {},
+                //   { $inc: { counter: 1 } },
+                //   { new: true, upsert: true }
+                // );
                 counterboolean = false;
               }
             }
@@ -226,7 +233,7 @@ exports.aviator_Start_function = async (io) => {
           return;
         }
       }
-    }, 500);
+    }, 3000);
 
     ////////////// everything converted into sql data base//////////////
     async function this_is_recusive_function_for_remove_all_lossAmount(
@@ -779,6 +786,128 @@ exports.cashOutFunction = async (req, res) => {
     });
   } catch (e) {
     console.log(e);
+    return res.status(500).json({
+      msg: "Something went wrong in create user query",
+    });
+  }
+};
+
+exports.getGameHistoryAviator = async (req, res) => {
+  try {
+    const query_for_game_history = `SELECT * FROM aviator_game_history;`;
+    const data = await queryDb(query_for_game_history)
+      .then((result) => {
+        return result;
+      })
+      .catch((e) => {
+        console.log("Error in fetching game history");
+      });
+    // const data = await GameHistory.find({});
+
+    if (!data)
+      return res.status(400).json({
+        msg: "Data not found",
+      });
+    return res.status(200).json({
+      data: data,
+      msg: "Data fetched successfully",
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+exports.getLederData = async (req, res) => {
+  try {
+    const query_for_get_ledger = "SELECT * FROM `aviator_bet_place_ledger`;";
+    // const data = await ApplyBetLedger.find({}).populate("main_id").limit(100);
+    const data = await queryDb(query_for_get_ledger)
+      .then((result) => {
+        return result;
+      })
+      .catch((e) => {
+        console.log("Error in fetching game history");
+      });
+    if (!data)
+      return res.status(400).json({
+        msg: "Data not found",
+      });
+    return res.status(200).json({
+      data: data,
+      msg: "Data fetched successfully",
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+exports.getWalletByUserId = async (req, res) => {
+  try {
+    const { id } = req.body;
+    console.log(id);
+    if (!id)
+      return res.status(400).json({
+        msg: "Undefined uesr id",
+      });
+    // const data = await User.findById({ _id: id });
+    const query_for_get_balance =
+      "SELECT wallet,winning_wallet as winning FROM `user` WHERE id = ?;";
+    const data = await queryDb(query_for_get_balance, [Number(id)]);
+
+    if (!data)
+      return res.status(400).json({
+        msg: "User not found",
+      });
+    return res.status(200).json({
+      data: {
+        wallet:data?.[0]?.wallet,
+          winning:data?.[0]?.winning
+      },
+      msg: "Data fetched successfully",
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+exports.getMyHistoryByID = async (req, res) => {
+  try {
+    const { user_id_node } = req.body;
+    console.log("HII")
+    if (!user_id_node)
+      return res.status(400).json({
+        msg: "Please provider user id",
+      });
+    // const data = await ApplyBetLedger.find({ userid: String(user_id_node) });
+    const query_for_get_my_history = "SELECT * FROM `aviator_bet_place_ledger` WHERE userid = ?;"
+    const data = await queryDb(query_for_get_my_history,[Number(user_id_node)]);
+
+    if (!data)
+      return res.status(400).json({
+        msg: "Data not found",
+      });
+    return res.status(200).json({
+      data: data,
+      msg: "Data fetched successfully",
+    });
+  } catch (e) {
+    console.log(e);
+  }
+};
+
+exports.getTopRecordsAviator = async (req, res) => {
+  try {
+    // const data = await ApplyBetLedger.find({})
+    //   .sort({ amountcashed: -1 })
+    //   .populate("main_id")
+    //   .limit(10);
+    const query_for_find_top_winner = "SELECT * FROM `aviator_bet_place_ledger` ORDER BY amountcashed LIMIT 10;"
+
+    const data = await queryDb(query_for_find_top_winner,[])
+    return res.status(200).json({
+      msg: "Data save successfully",
+      data: data,
+    });
+  } catch (e) {
     return res.status(500).json({
       msg: "Something went wrong in create user query",
     });
