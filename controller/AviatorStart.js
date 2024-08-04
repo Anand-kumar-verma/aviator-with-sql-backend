@@ -819,7 +819,7 @@ exports.getGameHistoryAviator = async (req, res) => {
 
 exports.getLederData = async (req, res) => {
   try {
-    const query_for_get_ledger = "SELECT * FROM `aviator_bet_place_ledger`;";
+    const query_for_get_ledger = "SELECT a.`amount`,a.`amountcashed`,a.`multiplier`,a.`createdAt`,a.`updatedAt`,u.`email`,u.`full_name`,u.`mobile` FROM `aviator_bet_place_ledger` AS a LEFT JOIN `user` AS u ON a.`userid` = u.`id`;";
     // const data = await ApplyBetLedger.find({}).populate("main_id").limit(100);
     const data = await queryDb(query_for_get_ledger)
       .then((result) => {
