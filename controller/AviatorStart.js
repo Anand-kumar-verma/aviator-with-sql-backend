@@ -900,7 +900,7 @@ exports.getTopRecordsAviator = async (req, res) => {
     //   .sort({ amountcashed: -1 })
     //   .populate("main_id")
     //   .limit(10);
-    const query_for_find_top_winner = "SELECT * FROM `aviator_bet_place_ledger` ORDER BY amountcashed LIMIT 10;"
+    const query_for_find_top_winner = "SELECT a.`amount`,a.`amountcashed`,a.`multiplier`,a.`createdAt`,a.`updatedAt`,u.`email`,u.`full_name`,u.`mobile` FROM `aviator_bet_place_ledger` AS a LEFT JOIN `user` AS u ON a.`userid` = u.`id` ORDER BY a.`amountcashed` DESC LIMIT 10;"
 
     const data = await queryDb(query_for_find_top_winner,[])
     return res.status(200).json({
